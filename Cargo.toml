@@ -1,5 +1,8 @@
-[workspace]
+[package]
+name = "image-processing"
+version = "0.1.0"
+edition = "2018"
 
-members = [
-    "q_001_010",
-]
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
