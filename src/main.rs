@@ -8,7 +8,7 @@ fn main() {
         for p in img.enumerate_pixels_mut() {
             *p.2 = Rgba([p.2[2], p.2[1], p.2[0], p.2[3]]);
         }
-      let _ = img.save("test.png");
+      let _ = img.save("results/q_001_swap_rgb.png");
     }
 
     // q_002: Grayscale
@@ -22,6 +22,6 @@ fn main() {
                     ) * 256.0) as u8;
             *p.2 = Rgba([g, g, g, p.2[3]]);
         }
-      let _ = img.save("test.png");
+      let _ = img.save("results/q_002_grayscale.png");
     }
 }
