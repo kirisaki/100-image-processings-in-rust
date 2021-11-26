@@ -4,7 +4,7 @@ fn main() {
     let mut img = ImageReader::open("dataset/images/imori_256x256.png")
         .unwrap().decode().unwrap().into_rgba8();
     for p in img.enumerate_pixels_mut() {
-        *p.2 = Rgba([255, 140, 200, 160]);
+        *p.2 = Rgba([p.2[2], p.2[1], p.2[0], p.2[3]]);
     }
     img.save("test.png");
 }
