@@ -1,20 +1,18 @@
-use image::{Rgba, io::Reader as ImageReader};
+
+use image::{Rgba, io::Reader as ImageReader, ImageBuffer};
 
 fn main() {
+    let imori256 = "dataset/images/madara_256x256.png";
+
     // q_001: Swap RGB channels
-    {
-        let mut img = ImageReader::open("dataset/images/imori_256x256.png")
-            .unwrap().decode().unwrap().into_rgba8();
+    apply(imori256, "results/q_001_swap_rgb.png", |img|{
         for p in img.enumerate_pixels_mut() {
             *p.2 = Rgba([p.2[2], p.2[1], p.2[0], p.2[3]]);
         }
-      let _ = img.save("results/q_001_swap_rgb.png");
-    }
+    });
 
-    // q_002: Grayscale
-    {
-        let mut img = ImageReader::open("dataset/images/imori_256x256.png")
-            .unwrap().decode().unwrap().into_rgba8();
+    // q_002: Grayscal
+    apply(imori256, "results/q_002_grayscale.png", |img|{
         for p in img.enumerate_pixels_mut() {
             let q = ((0.2126 * (p.2[0] as f32 / 256.0) +
                         0.7152 * (p.2[1] as f32 / 256.0) +
@@ -22,13 +20,10 @@ fn main() {
                     ) * 256.0) as u8;
             *p.2 = Rgba([q, q, q, p.2[3]]);
         }
-      let _ = img.save("results/q_002_grayscale.png");
-    }
+    });
 
     // q_003: Binary
-    {
-        let mut img = ImageReader::open("dataset/images/imori_256x256.png")
-            .unwrap().decode().unwrap().into_rgba8();
+    apply(imori256, "results/q_003_binary.png", |img|{
         for p in img.enumerate_pixels_mut() {
             let q = ((0.2126 * (p.2[0] as f32 / 256.0) +
                         0.7152 * (p.2[1] as f32 / 256.0) +
@@ -37,13 +32,10 @@ fn main() {
             let r = if q > 127 {255}else{0};
             *p.2 = Rgba([r, r, r, p.2[3]]);
         }
-      let _ = img.save("results/q_003_binary.png");
-    }
+    });
 
     // q_004: Otsu's binarization
-    {
-        let mut img = ImageReader::open("dataset/images/imori_256x256.png")
-            .unwrap().decode().unwrap().into_rgba8();
+    apply(imori256, "results/q_004_otsu_binary.png", |img| {
         let mut hist: [u32; 256] = [0; 256];
         for p in img.enumerate_pixels_mut() {
             let q = ((0.2126 * (p.2[0] as f32 / 255.0) +
@@ -76,6 +68,14 @@ fn main() {
                 *p.2 = Rgba([255, 255, 255, p.2[3]])
             };
         }
-        let _ = img.save("results/q_004_otsu_binary.png");
-    }
+    });
+}
+
+fn apply<F>(input: &str, outoput: &str, mut f: F)
+where
+    F: FnMut(&mut ImageBuffer<Rgba<u8>, Vec<u8>>)
+{
+    let mut img = ImageReader::open(input).unwrap().decode().unwrap().into_rgba8();
+    f(&mut img);
+    let _ = img.save(outoput);
 }
