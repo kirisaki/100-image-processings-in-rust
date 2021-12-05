@@ -1,8 +1,17 @@
 
+use std::iter::repeat;
+
 use image::{Rgba, io::Reader as ImageReader, ImageBuffer};
 
+#[derive(Debug, Clone)]
+struct Hsv {
+    h: f32,
+    s: f32,
+    v: f32,
+}
+
 fn main() {
-    let imori256 = "dataset/images/madara_256x256.png";
+    let imori256 = "dataset/images/imori_256x256.png";
 
     // q_001: Swap RGB channels
     apply(imori256, "results/q_001_swap_rgb.png", |img|{
@@ -68,6 +77,64 @@ fn main() {
                 *p.2 = Rgba([255, 255, 255, p.2[3]])
             };
         }
+    });
+
+    // q_005: HSV conversion
+    apply(imori256, "results/q_005_hsv_conversion.png", |img| {
+        // RGB to HSV
+        let mut hsv: Vec<Vec<Hsv>> = repeat(repeat(Hsv{h: 0.0, s: 0.0, v: 0.0})
+            .take(img.height() as usize)
+            .collect())
+            .take(img.width() as usize)
+            .collect();
+        for p in img.enumerate_pixels_mut() {
+            let v_max = p.2[0].max(p.2[1].max(p.2[2]));
+            let v_min = p.2[0].min(p.2[1].min(p.2[2]));
+            let s = v_max as f32 - v_min as f32;
+            let h = match v_max {
+                _ if v_min == v_max => 0.0,
+                _ if v_min == p.2[2] => 60.0 * (p.2[1] as f32 - p.2[0] as f32)/ s + 60.0,
+                _ if v_min == p.2[0] => 60.0 * (p.2[2] as f32 - p.2[1] as f32) / s + 180.0,
+                _ => 60.0 * (p.2[0] as f32 - p.2[2] as f32) / s + 300.0,
+            };
+            let v = v_max as f32;
+            hsv[p.0 as usize][p.1 as usize] = Hsv{h, s, v};
+        }
+        // Change hue
+        /*for row in hsv.iter_mut() {
+            for p in row.iter_mut() {
+                p.h = (p.h + 180.0) % 360.0;
+                p.s = p.s;
+                p.v = p.v;
+            }
+        }*/
+
+        // HSV to RGB
+        for (x, row) in hsv.iter().enumerate() {
+            for (y, p) in row.iter().enumerate() {
+                let hp = p.s / 60.0;
+                let xp = p.s as f32 * (1.0 - (hp % 2.0 - 1.0)); 
+                let m = p.v - p.s;
+                let (r, g, b) = match hp {
+                    h if h < 1.0             => (p.s, xp, 0.0),
+                    h if 1.0 <= h && h < 2.0 => (xp, p.s, 0.0), 
+                    h if 2.0 <= h && h < 3.0 => (0.0, p.s, xp), 
+                    h if 3.0 <= h && h < 4.0 => (0.0, xp, p.s), 
+                    h if 4.0 <= h && h < 5.0 => (xp, 0.0, p.s), 
+                    h if 5.0 <= h && h < 6.0 => (p.s, 0.0, xp),
+                    _ => panic!("invalid hue")
+                };
+                let q = Rgba([
+                    (r + m).floor() as u8,
+                    (g + m).floor() as u8,
+                    (b + m).floor() as u8,
+                    img.get_pixel(x as u32, y as u32)[3],
+                ]);
+                img.put_pixel(x as u32, y as u32, q);
+            }
+        }
+
+
     });
 }
 
