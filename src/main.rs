@@ -88,12 +88,12 @@ fn main() {
             .take(img.width() as usize)
             .collect();
         for p in img.enumerate_pixels_mut() {
-            let v_max = p.2[0].max(p.2[1].max(p.2[2]));
-            let v_min = p.2[0].min(p.2[1].min(p.2[2]));
+            let v_max = [p.2[0], p.2[1], p.2[2]].iter().max().unwrap().clone();
+            let v_min = [p.2[0], p.2[1], p.2[2]].iter().min().unwrap().clone();
             let s = v_max as f32 - v_min as f32;
-            let h = match v_max {
+            let h = match v_min {
                 _ if v_min == v_max => 0.0,
-                _ if v_min == p.2[2] => 60.0 * (p.2[1] as f32 - p.2[0] as f32)/ s + 60.0,
+                _ if v_min == p.2[2] => 60.0 * (p.2[1] as f32 - p.2[0] as f32) / s + 60.0,
                 _ if v_min == p.2[0] => 60.0 * (p.2[2] as f32 - p.2[1] as f32) / s + 180.0,
                 _ => 60.0 * (p.2[0] as f32 - p.2[2] as f32) / s + 300.0,
             };
@@ -101,27 +101,27 @@ fn main() {
             hsv[p.0 as usize][p.1 as usize] = Hsv{h, s, v};
         }
         // Change hue
-        /*for row in hsv.iter_mut() {
+        for row in hsv.iter_mut() {
             for p in row.iter_mut() {
                 p.h = (p.h + 180.0) % 360.0;
                 p.s = p.s;
                 p.v = p.v;
             }
-        }*/
+        }
 
         // HSV to RGB
         for (x, row) in hsv.iter().enumerate() {
             for (y, p) in row.iter().enumerate() {
-                let hp = p.s / 60.0;
-                let xp = p.s as f32 * (1.0 - (hp % 2.0 - 1.0)); 
+                let hp = p.h / 60.0;
+                let xp = p.s as f32 * (1.0 - (hp % 2.0 - 1.0).abs()); 
                 let m = p.v - p.s;
                 let (r, g, b) = match hp {
-                    h if h < 1.0             => (p.s, xp, 0.0),
-                    h if 1.0 <= h && h < 2.0 => (xp, p.s, 0.0), 
-                    h if 2.0 <= h && h < 3.0 => (0.0, p.s, xp), 
-                    h if 3.0 <= h && h < 4.0 => (0.0, xp, p.s), 
-                    h if 4.0 <= h && h < 5.0 => (xp, 0.0, p.s), 
-                    h if 5.0 <= h && h < 6.0 => (p.s, 0.0, xp),
+                    _ if hp < 1.0              => (p.s, xp, 0.0),
+                    _ if 1.0 <= hp && hp < 2.0 => (xp, p.s, 0.0), 
+                    _ if 2.0 <= hp && hp < 3.0 => (0.0, p.s, xp), 
+                    _ if 3.0 <= hp && hp < 4.0 => (0.0, xp, p.s), 
+                    _ if 4.0 <= hp && hp < 5.0 => (xp, 0.0, p.s), 
+                    _ if 5.0 <= hp && hp < 6.0 => (p.s, 0.0, xp),
                     _ => panic!("invalid hue")
                 };
                 let q = Rgba([
