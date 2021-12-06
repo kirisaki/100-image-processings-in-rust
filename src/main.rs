@@ -133,8 +133,15 @@ fn main() {
                 img.put_pixel(x as u32, y as u32, q);
             }
         }
+    });
 
-
+    // q_006: Color subtraction
+    apply(imori256, "results/q_006_color_subtraction.png", |img| {
+        let th = (256_u32 / 4_u32) as u8;
+        let f = |q| q / th * th + th / 2; 
+        for (_, _, p) in img.enumerate_pixels_mut() {
+            *p = Rgba([f(p[0]), f(p[1]), f(p[2]), p[3]]);
+        }
     });
 }
 
