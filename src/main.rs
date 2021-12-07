@@ -1,7 +1,7 @@
 
-use std::iter::repeat;
+use std::{iter::{repeat}, rc::Rc};
 
-use image::{Rgba, io::Reader as ImageReader, ImageBuffer};
+use image::{Rgba, io::Reader as ImageReader, ImageBuffer, SubImage, png, GenericImage, GenericImageView, DynamicImage, imageops::crop};
 
 #[derive(Debug, Clone)]
 struct Hsv {
@@ -139,9 +139,55 @@ fn main() {
     apply(imori256, "results/q_006_color_subtraction.png", |img| {
         let th = (256_u32 / 4_u32) as u8;
         let f = |q| q / th * th + th / 2; 
-        for (_, _, p) in img.enumerate_pixels_mut() {
+        for p in img.pixels_mut() {
             *p = Rgba([f(p[0]), f(p[1]), f(p[2]), p[3]]);
         }
+    });
+
+    // q_007: Average pooling
+    apply(imori256, "results/q_007_average_pooling.png", |img| {
+        let k = 5;
+        let (w, h) = (img.width(), img.height());
+        let (n_x, n_y) = (w / k, h / k);
+        let mut buf = DynamicImage::new_rgba8(k * (n_x + 1), k * (n_y + 1)).to_rgba8();
+        let _ = buf.copy_from(img, 0, 0);
+        let buf_ref = buf.clone();
+
+        // Fill mergin
+        for p in buf.enumerate_pixels_mut() {
+            match (p.0, p.1) {
+                (x, y) if x < w && y < h => (),
+                (x, y) if w <= x && y < h => *p.2 = *buf_ref.get_pixel(w - 1, y),
+                (x, y) if x < w && h <= y => *p.2 = *buf_ref.get_pixel(x, h - 1),
+                _ => *p.2 = *buf_ref.get_pixel(w - 1, h - 1),
+            }
+        }
+
+        // Mean pixels
+        let mut mean: Vec<Vec<[u8; 4]>> = repeat(repeat([0, 0, 0, 0])
+            .take(n_x as usize + 1)
+            .collect())
+            .take(n_y as usize + 1)
+            .collect();
+        for x_k in 0..n_x {
+            for y_k in 0..n_y {
+                mean[x_k as usize][y_k as usize] = buf
+                    .sub_image(x_k * k, y_k * k, k, k)
+                    .pixels()
+                    .fold([0.0, 0.0, 0.0, 0.0],
+                        |a, (_, _, x)| [a[0] + x[0] as f32, a[1] + x[1] as f32, a[2] + x[2] as f32, a[3] + x[3] as f32]).map(|x| (x / (k * k) as f32) as u8);
+            }
+        }
+        
+        // Fill chunks by mean
+        for p in buf.enumerate_pixels_mut(){
+            let (x, y) = (p.0, p.1);
+            let (x_k, y_k) = (x / k, y / k);
+            *p.2 = Rgba(mean[x_k as usize][y_k as usize]);
+        }
+        buf = crop(&mut buf, 0, 0, w, h).to_image();
+        let _ = img.copy_from(&buf, 0, 0);
+        
     });
 }
 
